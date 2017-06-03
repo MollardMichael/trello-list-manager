@@ -1,5 +1,5 @@
 {
-  "version": "0.1",
+  "version": "0.5",
   "content_scripts": [{
     "all_frames": true,
     "css": [ "style.css" ],
@@ -14,8 +14,13 @@
     "run_at": "document_start"
   }],
   "permissions": [
-    "*://trello.com/"
+    "*://trello.com/",
+    "storage"
   ],
+  "icons": {
+    "48": "icons/tlm48.png",
+    "128": "icons/tlm128.png"
+  },
   "manifest_version": 2,
   "name": "Trello Lists Manager",
   "short_name": "TLM",

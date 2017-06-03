@@ -1,9 +1,37 @@
-// Trello.com loads lists after whole page loaded and DOM is ready so we need to
-// wait for some DOM-elements appear on page and then react on this change.
-// Custom jQuery plugin was used to wait while required DOM-element will be created.
-// See https://gist.github.com/md55/6565078
-
 (function ($, window) {
+    var homeUrl;
+    $(window).on('load', function () {
+        homeUrl = window.location.href;
+        debouncedCreateDOMElements();
+        // Used to return element of class .list-wrapper that have changed and only those
+        new MutationSummary({
+            queries: [{
+                element: '.list-wrapper'
+            }],
+            callback: debouncedCreateDOMElements
+        });
+
+        $.get(
+            homeUrl+".json",
+            function (data) {
+                debouncedSetUpIDs(data);
+                restoreFromLocalStorage();
+            }
+        );
+    });
+
+    // Update list name on change
+    $('.list-wrapper').waitUntilExists(function () {
+        $.get(
+            homeUrl+".json",
+            debouncedSetUpIDs
+        );
+    });
+
+    $(window).unload(function () {
+        storeInLocaltrorage();
+    });
+
     // It is used to resize the wrapper around all when the top header gets too big
     function resizeBoardLayout() {
         var bannerHeight, boardHeaderHeight, headerHeight, height;
@@ -14,6 +42,7 @@
         this.$(".board-canvas").height(height - (headerHeight + bannerHeight + boardHeaderHeight));
     }
 
+    const debouncedCreateDOMElements = $.debounce(250,createDOMElements);
     function createDOMElements() {
         if (!$('#list-manager').length) {
             $('<span/>').addClass('board-header-btn')
@@ -30,38 +59,7 @@
         renderMenu();
     }
 
-    $(window).on('load', function () {
-        createDOMElements();
-        // Used to return element of class .list-wrapper that have changed and only those
-        new MutationSummary({
-            queries: [{
-                element: '.list-wrapper'
-            }],
-            callback: createDOMElements
-        });
-    });
-
-
-
-
-    function guid() {
-        function s4() {
-            return Math.floor((1 + Math.random()) * 0x10000)
-                .toString(16)
-                .substring(1);
-        }
-        return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
-            s4() + '-' + s4() + s4() + s4();
-    }
-
-    // Update list name on change
-    $('.list-wrapper').waitUntilExists(function () {
-        $.get(
-            window.location.href+".json",
-            $.debounce(250,setupIDs)
-        );
-    });
-
+    const debouncedSetUpIDs = $.debounce(250,setupIDs);
     function setupIDs(data) {
         $('.list-wrapper').each(function () {
             var $list = $(this);
@@ -73,11 +71,11 @@
                 if (listData) {
                     $(this).attr('data-list-id', listData.id);
                 } else {
-                    $(this).attr('data-list-id', guid());
+                    $(this).attr('data-list-id', 'add-list');
                 }
             }
         });
-        createDOMElements();
+        debouncedCreateDOMElements();
     }
 
     function handleClick(event) {
@@ -88,14 +86,12 @@
 
         var listId = $target.attr('data-list-id');
         if (listId === 'all') {
-            $('.list-wrapper').each(function () {
-                var $list = $(this);
-                if ($target.hasClass('show-all')) {
-                    $list.removeClass('hide-list');
-                } else {
-                    $list.addClass('hide-list');
-                }
-            });
+            var $lists = $('.list-wrapper');
+            if ($target.hasClass('show-all')) {
+                $lists.removeClass('hide-list');
+            } else {
+                $lists.addClass('hide-list');
+            }
             // Rebuild menu to set correct status.
             renderMenu();
         } else {
@@ -125,6 +121,7 @@
         } else {
             $tab.addClass('shown');
         }
+
         return $tab;
     }
 
@@ -143,4 +140,29 @@
         $('#list-manager').html(ul.html());
         resizeBoardLayout();
     }
+
+    function restoreFromLocalStorage() {
+        $('.list-wrapper').each(function(){
+            var $list = $(this);
+            var listId = $list.attr('data-list-id');
+            var state = localStorage.getItem('list-manager-'+ listId);
+            if (state === "hide-list") {
+                $list.addClass('hide-list');
+            }
+        });
+    }
+
+    function storeInLocaltrorage() {
+        $lists = $('.list-wrapper');
+        for (var i = 0;i<$lists.length;i++) {
+            var $list = $($lists.get(i));
+            var listId = $list.attr('data-list-id');
+            if ($list.hasClass('hide-list')) {
+                localStorage.setItem('list-manager-'+ listId, 'hide-list');
+            } else {
+                localStorage.setItem('list-manager-'+ listId, 'show-list');
+            }
+        }
+    }
+
 })(jQuery, window);
