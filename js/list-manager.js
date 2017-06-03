@@ -14,7 +14,7 @@
     $.get(
         homeUrl+".json",
         function (data) {
-            $(window).load(function () {
+            $(window).ready(function () {
                 setupIDs(data);
                 restoreFromLocalStorage();
                 // Update list name on change

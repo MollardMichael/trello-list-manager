@@ -1,5 +1,5 @@
 {
-  "version": "0.6",
+  "version": "1.0.0",
   "content_scripts": [{
     "all_frames": true,
     "css": [ "style.css" ],
