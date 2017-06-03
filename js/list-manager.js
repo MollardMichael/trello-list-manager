@@ -14,10 +14,12 @@
     $.get(
         homeUrl+".json",
         function (data) {
-            setupIDs(data);
-            restoreFromLocalStorage();
-            // Update list name on change
-            $('.list-wrapper').waitUntilExists(debouncedGetListIDs);
+            $(window).load(function () {
+                setupIDs(data);
+                restoreFromLocalStorage();
+                // Update list name on change
+                $('.list-wrapper').waitUntilExists(debouncedGetListIDs);
+            })
         }
     );
 
@@ -63,7 +65,7 @@
     function setupIDs(data) {
         $('.list-wrapper').each(function () {
             var $list = $(this);
-            var listName = $list.find('textarea').text();
+            var listName = $list.find('textarea').val();
             if (!$(this).attr('data-list-id')) {
                 var listData = data.lists.filter(function(object) {
                     return listName === object.name;
@@ -75,6 +77,9 @@
                 }
             }
         });
+        var $titles = $('.list-header textarea');
+        $titles.off('change', renderMenu);
+        $titles.on('change', renderMenu);
         debouncedCreateDOMElements();
     }
 
@@ -108,7 +113,7 @@
     }
 
     function createToogleTab($list) {
-        var listName = $list.find('textarea').text();
+        var listName = $list.find('textarea').val();
         var listId = $list.attr('data-list-id');
         if (!listName) {
             listName = "Add a list";
@@ -145,6 +150,7 @@
         $('.list-wrapper').each(function(){
             var $list = $(this);
             var listId = $list.attr('data-list-id');
+
             var state = localStorage.getItem('list-manager-'+ listId);
             if (state === "hide-list") {
                 $list.addClass('hide-list');
@@ -156,7 +162,12 @@
         $lists = $('.list-wrapper');
         for (var i = 0;i<$lists.length;i++) {
             var $list = $($lists.get(i));
+
             var listId = $list.attr('data-list-id');
+            if (!listId) {
+                continue;
+            }
+
             if ($list.hasClass('hide-list')) {
                 localStorage.setItem('list-manager-'+ listId, 'hide-list');
             } else {
