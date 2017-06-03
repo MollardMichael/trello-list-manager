@@ -1,7 +1,6 @@
 (function ($, window) {
-    var homeUrl;
+    var homeUrl =  window.location.href;
     $(window).on('load', function () {
-        homeUrl = window.location.href;
         debouncedCreateDOMElements();
         // Used to return element of class .list-wrapper that have changed and only those
         new MutationSummary({
@@ -10,27 +9,29 @@
             }],
             callback: debouncedCreateDOMElements
         });
-
-        $.get(
-            homeUrl+".json",
-            function (data) {
-                debouncedSetUpIDs(data);
-                restoreFromLocalStorage();
-            }
-        );
     });
 
-    // Update list name on change
-    $('.list-wrapper').waitUntilExists(function () {
-        $.get(
-            homeUrl+".json",
-            debouncedSetUpIDs
-        );
-    });
+    $.get(
+        homeUrl+".json",
+        function (data) {
+            setupIDs(data);
+            restoreFromLocalStorage();
+            // Update list name on change
+            $('.list-wrapper').waitUntilExists(debouncedGetListIDs);
+        }
+    );
 
     $(window).unload(function () {
         storeInLocaltrorage();
     });
+
+    const debouncedGetListIDs = $.debounce(2000, getListIDs);
+    function getListIDs() {
+        $.get(
+            homeUrl+".json",
+            setupIDs
+        );
+    }
 
     // It is used to resize the wrapper around all when the top header gets too big
     function resizeBoardLayout() {
@@ -59,13 +60,12 @@
         renderMenu();
     }
 
-    const debouncedSetUpIDs = $.debounce(250,setupIDs);
     function setupIDs(data) {
         $('.list-wrapper').each(function () {
             var $list = $(this);
             var listName = $list.find('textarea').text();
             if (!$(this).attr('data-list-id')) {
-                listData = data.lists.filter(function(object) {
+                var listData = data.lists.filter(function(object) {
                     return listName === object.name;
                 })[0];
                 if (listData) {
